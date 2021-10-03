@@ -15,8 +15,7 @@
     "Route53"
   ],
   "files": [
-    "src",
-    "dist"
+    "src"
   ],
   "mode": "production",
   "dependencies": {

@@ -84,19 +84,6 @@
               "Version": "2012-10-17"
             },
             "PolicyName": { "Fn::Sub": "${AWS::StackName}-${AWS::Region}-AWSLambda-CW" }
-          },
-          {
-            "PolicyDocument": {
-              "Statement": [
-                {
-                  "Action": ["s3:PutObject", "s3:DeleteObject"],
-                  "Effect": "Allow",
-                  "Resource": [{ "Fn::Sub": "${BucketForS3ExplorerSavedConfiguration.Arn}/configuration.json" }]
-                }
-              ],
-              "Version": "2012-10-17"
-            },
-            "PolicyName": { "Fn::Sub": "${AWS::StackName}-${AWS::Region}-AWSLambda-S3" }
           }
         ],
         "RoleName": { "Fn::Sub": "${AWS::StackName}-${AWS::Region}-Route53-EIP-Config-Lambda" }
@@ -107,7 +94,7 @@
   "Outputs": {
     "ConfigRuleId": {
       "Description": "Config Rule ID",
-      "Value": { "Ref": "CognitoUserPool" }
+      "Value": { "Ref": "AWSLambdaExecutionRole" }
     }
   }
 }
