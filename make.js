@@ -4,6 +4,7 @@ const axios = require('axios');
 const aws = require('aws-sdk');
 const commander = require('commander');
 const fs = require('fs-extra');
+const path = require('path');
 // const githubActionsRunner = require('ci-build-tools')(process.env.GITHUB_TOKEN);
 
 aws.config.update({ region: 'eu-west-1' });
@@ -98,7 +99,9 @@ commander
 
     try {
       const serverlessApplicationRepository = new aws.ServerlessApplicationRepository();
-      const template = require('./template/cloudformationTemplate.json');
+      const templateProvider = require('./template/cloudformationTemplate');
+      const lambdaFunction = await fs.readFile(path.join(__dirname, 'template/configRule.js'));
+      const template = templateProvider.getTemplate(lambdaFunction.toString());
       const params = {
         ApplicationId: `arn:aws:serverlessrepo:${aws.config.region}:${process.env.AWS_ACCOUNT_ID}:applications/Elastic-IP-Config-Rule`,
         SemanticVersion: version,
