@@ -100,7 +100,7 @@ commander
       const serverlessApplicationRepository = new aws.ServerlessApplicationRepository();
       const template = require('./template/cloudformationTemplate.json');
       const params = {
-        ApplicationId: `arn:aws:serverlessrepo:${aws.config.region}:${process.env.AWS_ACCOUNT_ID}:applications/Elastic-IP-Cleaner-Config`,
+        ApplicationId: `arn:aws:serverlessrepo:${aws.config.region}:${process.env.AWS_ACCOUNT_ID}:applications/Elastic-IP-Config-Rule`,
         SemanticVersion: version,
         // SourceCodeArchiveUrl: ``,
         SourceCodeUrl: `https://github.com/Rhosys/AWS-Route53-EIP-Config/releases/tag/${version}`,
