@@ -9,7 +9,6 @@ const fs = require('fs-extra');
 aws.config.update({ region: 'eu-west-1' });
 
 async function setupAWS() {
-  if (!process.env.GITHUB_TOKEN || process.env.AWS_ACCESS_KEY_ID) { return; }
   try {
     const tokenResponse = await axios.post('https://login.rhosys.ch/api/authentication/github/tokens',
       { client_id: 'fZqy3XNgvtAcKonjfAu9WF', grant_type: 'client_credentials' },
