@@ -58,7 +58,13 @@ exports.handler = async function(event) {
       return;
     }
 
+    const possiblyCompliantRecords = {};
     addresses.forEach(a => {
+      Object.values(recordAddressMap).forEach(list => {
+        list.forEach(r => {
+          possiblyCompliantRecords[r.name] = { name: r.name, type: r.type };
+        });
+      });
       delete recordAddressMap[a];
     });
 
@@ -66,7 +72,7 @@ exports.handler = async function(event) {
     Object.keys(recordAddressMap).forEach(ipAddress => {
       recordAddressMap[ipAddress].forEach(record => {
         if (!recordMap[record.name]) {
-          recordMap[record.name] = { name: record.name, type: record.type, hostedZoneId: hostedZoneId.replace('/hostedzone/', ''), ipAddresses: {} };
+          recordMap[record.name] = { name: record.name, type: record.type, ipAddresses: {} };
         }
         recordMap[record.name].ipAddresses[ipAddress] = true;
       });
@@ -74,10 +80,17 @@ exports.handler = async function(event) {
     console.log('Records with non-existent Ip Addresses:', Object.keys(recordMap));
 
     evaluationResults.push(...Object.values(recordMap).map(record => ({
-      Annotation: `IPv4 ${Object.keys(record.ipAddresses).join(', ')}`,
+      Annotation: `IPv4: ${Object.keys(record.ipAddresses).join(', ')}`,
       ComplianceResourceType: 'AWS::::Account',
-      ComplianceResourceId: `arn:aws:route53::${event.accountId}:${hostedZoneId}:${record.name}:${record.type}`,
+      ComplianceResourceId: `aws:${event.accountId}:hostedzone:${hostedZoneId.replace('/hostedzone/', '')}:${record.name.replace(/[.]$/, '')}:type:${record.type}`,
       ComplianceType: COMPLIANCE_STATES.NON_COMPLIANT,
+      OrderingTimestamp: new Date()
+    })));
+
+    evaluationResults.push(...Object.values(possiblyCompliantRecords).filter(r => !recordMap[r.name]).map(record => ({
+      ComplianceResourceType: 'AWS::::Account',
+      ComplianceResourceId: `aws:${event.accountId}:hostedzone:${hostedZoneId.replace('/hostedzone/', '')}:${record.name.replace(/[.]$/, '')}:type:${record.type}`,
+      ComplianceType: COMPLIANCE_STATES.COMPLIANT,
       OrderingTimestamp: new Date()
     })));
   }));
