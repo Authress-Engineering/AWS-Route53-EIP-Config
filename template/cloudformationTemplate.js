@@ -10,7 +10,7 @@ module.exports = {
         ConfigRule: {
           Type: 'AWS::Config::ConfigRule',
           Properties: {
-            ConfigRuleName: { 'Fn::Sub': '${AWS::StackName}-${AWS::Region}' },
+            ConfigRuleName: { 'Fn::Sub': '${AWS::StackName}' },
             Description: 'Route53 Config rule for EIP',
             Source: {
               Owner: 'CUSTOM_LAMBDA',
@@ -39,7 +39,7 @@ module.exports = {
           Type: 'AWS::Lambda::Function',
           Properties: {
             Description: 'Triggered by the Config Rule',
-            FunctionName: { 'Fn::Sub': '${AWS::StackName}-${AWS::Region}' },
+            FunctionName: { 'Fn::Sub': '${AWS::StackName}' },
             Handler: 'index.handler',
             Role: { 'Fn::GetAtt': ['AWSLambdaExecutionRole', 'Arn'] },
             Timeout: 900,
@@ -53,7 +53,7 @@ module.exports = {
         CloudWatchLambdaLogGroup: {
           Type: 'AWS::Logs::LogGroup',
           Properties: {
-            LogGroupName: { 'Fn::Sub': '/aws/lambda/${AWS::StackName}-${AWS::Region}' },
+            LogGroupName: { 'Fn::Sub': '/aws/lambda/${AWS::StackName}' },
             RetentionInDays: 365
           }
         },
@@ -61,6 +61,7 @@ module.exports = {
         AWSLambdaExecutionRole: {
           Type: 'AWS::IAM::Role',
           Properties: {
+            RoleName: { 'Fn::Sub': '${AWS::StackName}-${AWS::Region}' },
             AssumeRolePolicyDocument: {
               Statement: [
                 {
@@ -89,10 +90,22 @@ module.exports = {
                   ],
                   Version: '2012-10-17'
                 },
-                PolicyName: { 'Fn::Sub': '${AWS::StackName}-${AWS::Region}-AWSLambda-Access' }
+                PolicyName: { 'Fn::Sub': 'AWSLambda-Access' }
+              },
+              {
+                PolicyDocument: {
+                  Statement: [
+                    {
+                      Action: ['config:GetComplianceDetailsByConfigRule'],
+                      Effect: 'Allow',
+                      Resource: { 'Fn::Sub': 'arn:aws:config:${AWS::Region}:${AWS::AccountId}:config-rule/*' }
+                    }
+                  ],
+                  Version: '2012-10-17'
+                },
+                PolicyName: { 'Fn::Sub': 'ConfigRuleAccess' }
               }
-            ],
-            RoleName: { 'Fn::Sub': '${AWS::StackName}-${AWS::Region}' }
+            ]
           }
         }
       },
