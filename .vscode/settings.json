@@ -1,0 +1,16 @@
+{
+    "search.exclude": {
+        "**/lib": true,
+        "lib/*": true
+    },
+    "cSpell.words": [
+        "exportparts",
+        "sublicensees"
+    ],
+    "files.exclude": {
+        "**/lib": true,
+        "dist/**": true,
+        "lib/*": true,
+        "yarn-error.log": true
+    }
+}
