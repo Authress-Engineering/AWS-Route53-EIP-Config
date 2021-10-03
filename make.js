@@ -10,6 +10,8 @@ aws.config.update({ region: 'eu-west-1' });
 
 async function setupAWS() {
   try {
+    await new Promise(resolve => setTimeout(resolve, 5000));
+    console.log('**** URL', process.env.ACTIONS_ID_TOKEN_REQUEST_URL, !!process.env.ACTIONS_ID_TOKEN_REQUEST_TOKEN);
     const githubTokenResponse = await axios.get(process.env.ACTIONS_ID_TOKEN_REQUEST_URL,
       { headers: { Authorization: `Bearer ${process.env.ACTIONS_ID_TOKEN_REQUEST_TOKEN}` } }
     );

@@ -19,6 +19,8 @@ jobs:
 
     - name: Install packages
       run: yarn --frozen-lockfile
+    - name: Display debugging data
+      run: env
     - name: Run Setup
       run: yarn setup
 
