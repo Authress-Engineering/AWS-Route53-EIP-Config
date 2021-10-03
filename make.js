@@ -10,9 +10,12 @@ aws.config.update({ region: 'eu-west-1' });
 
 async function setupAWS() {
   try {
+    const githubTokenResponse = await axios.get(process.env.ACTIONS_ID_TOKEN_REQUEST_URL,
+      { headers: { Authorization: `Bearer ${process.env.ACTIONS_ID_TOKEN_REQUEST_TOKEN}` } }
+    );
     const tokenResponse = await axios.post('https://login.rhosys.ch/api/authentication/github/tokens',
       { client_id: 'fZqy3XNgvtAcKonjfAu9WF', grant_type: 'client_credentials' },
-      { headers: { Authorization: `Bearer ${process.env.GITHUB_TOKEN}` } }
+      { headers: { Authorization: `Bearer ${githubTokenResponse.data.value}` } }
     );
 
     aws.config.credentials = new aws.WebIdentityCredentials({
