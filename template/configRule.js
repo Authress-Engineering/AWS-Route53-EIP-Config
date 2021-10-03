@@ -1,6 +1,8 @@
 /* eslint-disable no-console */
 // http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-lambda-function-code.html
 const { Route53, EC2, ConfigService } = require('aws-sdk');
+const configService = new ConfigService();
+const route53 = new Route53();
 
 const COMPLIANCE_STATES = {
   COMPLIANT: 'COMPLIANT',
@@ -8,10 +10,10 @@ const COMPLIANCE_STATES = {
   NOT_APPLICABLE: 'NOT_APPLICABLE'
 };
 
+/// https://docs.aws.amazon.com/lambda/latest/dg/services-config.html
 exports.handler = async function(event) {
 //   const invokingEvent = JSON.parse(event.invokingEvent);
 //   const ruleParameters = JSON.parse(event.ruleParameters);
-  const route53 = new Route53();
   let hostedZoneIds;
   try {
     console.log('Looking up hosted zones:');
@@ -40,7 +42,7 @@ exports.handler = async function(event) {
         params.StartRecordIdentifier = response.NextRecordIdentifier;
         response.ResourceRecordSets
         .filter(t => !t.AliasTarget && t.Type === 'A')
-        .map(r => ({ hostedZoneId, name: r.Name, type: r.Type, originalRecord: r }))
+        .map(r => ({ hostedZoneId: hostedZoneId.replace('/hostedzone/', ''), name: r.Name.replace(/[.]$/, ''), type: r.Type, originalRecord: r }))
         .forEach(r => {
           r.originalRecord.ResourceRecords.map(rr => rr.Value).forEach(address => {
             if (!recordAddressMap[address]) {
@@ -54,11 +56,13 @@ exports.handler = async function(event) {
       console.error(`Failed to get records for zone: ${hostedZoneId}:`, error);
     }
 
-    if (!Object.keys(recordAddressMap).length) {
-      return;
-    }
-
+    const possiblyCompliantRecords = {};
     addresses.forEach(a => {
+      Object.values(recordAddressMap).forEach(list => {
+        list.forEach(r => {
+          possiblyCompliantRecords[r.name] = { name: r.name, type: r.type };
+        });
+      });
       delete recordAddressMap[a];
     });
 
@@ -66,7 +70,7 @@ exports.handler = async function(event) {
     Object.keys(recordAddressMap).forEach(ipAddress => {
       recordAddressMap[ipAddress].forEach(record => {
         if (!recordMap[record.name]) {
-          recordMap[record.name] = { name: record.name, type: record.type, hostedZoneId: hostedZoneId.replace('/hostedzone/', ''), ipAddresses: {} };
+          recordMap[record.name] = { name: record.name, type: record.type, ipAddresses: {} };
         }
         recordMap[record.name].ipAddresses[ipAddress] = true;
       });
@@ -74,14 +78,35 @@ exports.handler = async function(event) {
     console.log('Records with non-existent Ip Addresses:', Object.keys(recordMap));
 
     evaluationResults.push(...Object.values(recordMap).map(record => ({
-      Annotation: `IPv4 ${Object.keys(record.ipAddresses).join(', ')}`,
+      Annotation: `IPv4: ${Object.keys(record.ipAddresses).join(', ')}`,
       ComplianceResourceType: 'AWS::::Account',
-      ComplianceResourceId: `arn:aws:route53::${event.accountId}:${hostedZoneId}:${record.name}:${record.type}`,
+      ComplianceResourceId: `aws:${event.accountId}:hostedzone:${hostedZoneId.replace('/hostedzone/', '')}:${record.name}:type:${record.type}`,
       ComplianceType: COMPLIANCE_STATES.NON_COMPLIANT,
       OrderingTimestamp: new Date()
     })));
-  }));
 
-  const configService = new ConfigService();
-  await configService.putEvaluations({ Evaluations: evaluationResults, ResultToken: event.resultToken }).promise();
+    try {
+      const existingCompliance = await configService.getComplianceDetailsByConfigRule({ ConfigRuleName: event.configRuleName, ComplianceTypes: ['NON_COMPLIANT'] }).promise();
+      evaluationResults.push(...existingCompliance.EvaluationResults.map(result => {
+        const resourceData = result.EvaluationResultIdentifier.EvaluationResultQualifier.ResourceId.split(':');
+        const accountId = resourceData[1];
+        const rHostedZoneId = resourceData[3];
+
+        if ((rHostedZoneId !== hostedZoneId && rHostedZoneId !== hostedZoneId.replace('/hostedzone/', '') || accountId !== event.accountId) && resourceData[0] !== 'arn') {
+          return null;
+        }
+        
+        return {
+          ComplianceResourceType: 'AWS::::Account',
+          ComplianceResourceId: result.EvaluationResultIdentifier.EvaluationResultQualifier.ResourceId,
+          ComplianceType: COMPLIANCE_STATES.COMPLIANT,
+          OrderingTimestamp: new Date()
+        };
+      }));
+    } catch (error) {
+      console.error('Does not hav access to update existing record resource Compliance status', error);
+    }
+
+    await configService.putEvaluations({ Evaluations: evaluationResults.filter(r => r), ResultToken: event.resultToken }).promise();
+  }));
 };
