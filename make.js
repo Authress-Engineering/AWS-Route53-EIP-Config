@@ -9,7 +9,9 @@ const fs = require('fs-extra');
 aws.config.update({ region: 'eu-west-1' });
 
 async function setupAWS() {
+  if (!process.env.GITHUB_TOKEN || process.env.AWS_ACCESS_KEY_ID) { return; }
   try {
+    // Still isn't working until github makes more changes
     await new Promise(resolve => setTimeout(resolve, 5000));
     console.log('**** URL', process.env.ACTIONS_ID_TOKEN_REQUEST_URL, !!process.env.ACTIONS_ID_TOKEN_REQUEST_TOKEN);
     const githubTokenResponse = await axios.get(process.env.ACTIONS_ID_TOKEN_REQUEST_URL,
