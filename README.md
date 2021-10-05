@@ -1,4 +1,4 @@
-# AWS S3 Explorer
+# AWS Route53 EIP Config Rule
 
 <p align="center">
     <a href="./LICENSE" alt="apache 2.0 license">
@@ -10,7 +10,7 @@
 </p>
 
 
-Creates an AWS Config rule to detect route53 records pointing at ip addresses that are no longer in use. Deploy using the AWS Service application repository.
+Creates an AWS Config rule to detect route53 records pointing at ip addresses that are no longer in use. Deploy using the AWS Service application repository. Designed to detect records pointing at removed EIPs which would allow for a domain takeover.
 
 Route 53 EIP config rule in [AWS Service application repository]()
 
