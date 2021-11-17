@@ -1,6 +1,5 @@
 /* eslint-disable no-console */
 
-const axios = require('axios');
 const aws = require('aws-sdk');
 const commander = require('commander');
 const fs = require('fs-extra');
@@ -8,46 +7,6 @@ const path = require('path');
 // const githubActionsRunner = require('ci-build-tools')(process.env.GITHUB_TOKEN);
 
 aws.config.update({ region: 'eu-west-1' });
-
-async function setupAWS() {
-  if (!process.env.GITHUB_TOKEN || process.env.AWS_ACCESS_KEY_ID) { return; }
-  try {
-    // Still isn't working until github makes more changes
-    await new Promise(resolve => setTimeout(resolve, 5000));
-    console.log('**** URL', process.env.ACTIONS_ID_TOKEN_REQUEST_URL, !!process.env.ACTIONS_ID_TOKEN_REQUEST_TOKEN);
-    const githubTokenResponse = await axios.get(process.env.ACTIONS_ID_TOKEN_REQUEST_URL,
-      { headers: { Authorization: `Bearer ${process.env.ACTIONS_ID_TOKEN_REQUEST_TOKEN}` } }
-    );
-    const tokenResponse = await axios.post('https://login.rhosys.ch/api/authentication/github/tokens',
-      { client_id: 'fZqy3XNgvtAcKonjfAu9WF', grant_type: 'client_credentials' },
-      { headers: { Authorization: `Bearer ${githubTokenResponse.data.value}` } }
-    );
-
-    aws.config.credentials = new aws.WebIdentityCredentials({
-      WebIdentityToken: tokenResponse.data.access_token,
-      RoleArn: `arn:aws:iam::${process.env.AWS_ACCOUNT_ID}:role/GitHubRunnerAssumedRole`,
-      RoleSessionName: `GitHubRunner-${process.env.GITHUB_REPOSITORY}-${process.env.GITHUB_RUN_NUMBER}`,
-      DurationSeconds: 3600
-    });
-  } catch (error) {
-    const loggedError = error.response && {
-      data: error.response.data,
-      status: error.response.status,
-      headers: error.response.headers,
-      config: error.config || error.response.config
-    } || error;
-    console.log('Failed to exchange token for AWS credentials:', JSON.stringify(loggedError, null, 2));
-    process.exit(1);
-  }
-
-  try {
-    const stsResult = await new aws.STS().getCallerIdentity().promise();
-    console.log('Configured AWS Credentials', stsResult);
-  } catch (error) {
-    console.log('Failed to setup credentials', error);
-    process.exit(1);
-  }
-}
 
 function getVersion() {
   let release_version = '0.0';
@@ -95,7 +54,6 @@ commander
   .action(async () => {
     console.log('After build package %s (%s)', packageMetadata.name, version);
     console.log('');
-    await setupAWS();
 
     try {
       const serverlessApplicationRepository = new aws.ServerlessApplicationRepository();
